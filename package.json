@@ -1,0 +1,19 @@
+{
+  "name": "svasth-project",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm --workspace frontend run dev\" \"npm --workspace backend run dev\"",
+    "build": "npm --workspace frontend run build",
+    "start": "npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "dependencies": {
+    "mongodb": "^7.4.0"
+  }
+}
