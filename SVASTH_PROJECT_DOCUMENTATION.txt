@@ -1,0 +1,274 @@
+================================================================================
+SVASTH: HEALTHCARE OPERATIONS & WORKFLOW AUTOMATION PLATFORM
+COMPLETE TECHNICAL SPECIFICATION & DETAILED PROJECT DOCUMENTATION
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. EXECUTIVE SUMMARY & VISION
+2. SYSTEM ARCHITECTURE & HIGH-LEVEL FLOW
+3. TECHNOLOGY STACK & KEY DEPENDENCIES
+4. REPOSITORY & FILE STRUCTURE BREAKDOWN
+5. DATABASE SCHEMAS & DATA MODELS
+6. COMPLETE API REFERENCE
+7. FRONTEND USER EXPERIENCE & VIEW ARCHITECTURE
+8. WORKFLOW AUTOMATION & INTEGRATION ARCHITECTURE
+9. INSTALLATION, CONFIGURATION & LOCAL EXECUTION GUIDE
+10. SUMMARY & CONCLUSION
+
+
+================================================================================
+1. EXECUTIVE SUMMARY & VISION
+================================================================================
+SVASTH (derived from Sanskrit for health and well-being) is an enterprise-grade
+digital healthcare workflow automation and patient engagement platform. Built 
+with a modern micro-services-inspired Monorepo architecture, SVASTH seamlessly 
+unites patients, clinical reception staff, healthcare providers (doctors), and 
+hospital administrators into a single, cohesive, real-time clinical command 
+center.
+
+CORE OBJECTIVES:
+- Automated Patient Lifecycle Management: Eliminate manual record-keeping by 
+  guiding patients from consultation booking to real-time QR code check-in, 
+  doctor consultation, and post-visit follow-up.
+- Multi-Channel Automated Communication: Utilize event-driven pub/sub 
+  architecture and webhook automation (via Redis and n8n) to trigger instant 
+  WhatsApp confirmations, email notifications, and automated reminders.
+- Intelligent Front-Desk Orchestration: Provide reception desk personnel with a 
+  touchless QR code scanning verification mechanism that accelerates queue flow.
+- Embedded Conversational AI Assistant: Offer an interactive 24/7 AI virtual 
+  assistant directly within the patient dashboard to assist with scheduling.
+
+
+================================================================================
+2. SYSTEM ARCHITECTURE & HIGH-LEVEL FLOW
+================================================================================
+SVASTH adopts a full-stack JavaScript/Node.js architecture utilizing React 18 for 
+the frontend client and Express.js for the RESTful API backend, supported by 
+MongoDB for persistent document storage and Redis for caching and event stream 
+dispatching.
+
+SYSTEM FLOW:
+  [ Patient / Reception / Doctor / Admin ] (React 18 SPA at http://localhost:5173)
+                         |
+                         | (HTTP REST / JSON API Calls)
+                         v
+        [ Express.js API Server at http://localhost:5000 ]
+                         |
+       +-----------------+-----------------+
+       |                                   |
+       v                                   v
+  [ MongoDB Database ]             [ Redis Event Engine ]
+  (Port 27017)                     (Port 6379)
+  - Users Collection               - Doctor List Cache
+  - Doctors Collection             - Event Stream Dispatcher
+  - Appointments Collection                |
+  - Notifications Collection               v
+                                   [ n8n Webhook Engine ]
+                                   - WhatsApp API Triggers
+                                   - Automated Email Engine
+
+
+================================================================================
+3. TECHNOLOGY STACK & KEY DEPENDENCIES
+================================================================================
+
+3.1 FRONTEND FRAMEWORK & LIBRARIES:
+- Framework: React 18 (react, react-dom) initialized with Vite 5.
+- Routing: react-router-dom (v6.21) supporting client-side routing, protected 
+  routes, and role-based redirects.
+- Styling: Vanilla CSS + Tailwind CSS v4 (@tailwindcss/vite).
+- UI Animation: framer-motion (v11.11) for smooth entrance transitions.
+- Icons: lucide-react (v1.23) for clean modern medical icons.
+- QR Code Generation: qrcode.react (v4.0) rendering SVG vector QR codes.
+
+3.2 BACKEND FRAMEWORK & SERVICES:
+- Runtime & Framework: Node.js ES Modules ("type": "module") running Express.js.
+- Database Driver: Official Node MongoDB Driver (mongodb v7.4).
+- Cache & Event Bus: ioredis (v5.3) for key-value caching and event publishing.
+- Cross-Origin Handling: cors (v2.8) for domain communication.
+- Environment Management: dotenv (v16.0) for variable injection.
+- Process Orchestration: concurrently (v9.0) enabling single-command execution.
+
+
+================================================================================
+4. REPOSITORY & FILE STRUCTURE BREAKDOWN
+================================================================================
+Svasth-Project/
+│
+├── package.json               Root package configuration with workspaces & concurrently
+├── package-lock.json          Dependency tree lock file
+├── README.md                  Quick-start documentation
+├── .env.example               Master environment template
+├── SVASTH_PROJECT_DOCUMENTATION.md Detailed Markdown specification
+├── SVASTH_PROJECT_DOCUMENTATION.txt Detailed Plain Text specification
+│
+├── backend/                   Express.js REST API Backend
+│   ├── .env                   Active environment variables (Port 5000, Mongo URI, Redis URL)
+│   ├── .env.example           Backend configuration blueprint
+│   ├── package.json           Backend dependencies and ES module script declarations
+│   ├── mongo.js               Standalone database connectivity script
+│   ├── server.js              Express entry point wrapper
+│   └── src/
+│       ├── index.js           Primary execution module importing app.js
+│       ├── app.js             Complete Express application configuration & API routes
+│       ├── config/
+│       │   ├── database.js    MongoDB connection pooling & schema index initialization
+│       │   └── redis.js       Redis client with retry strategies & webhook dispatcher
+│       └── services/
+│           ├── notifications.js Notification creation & retrieval service
+│           └── seed.js        Initial database seeder for doctors and default user
+│
+└── frontend/                  React 18 + Vite Frontend App
+    ├── .env                   Frontend active environment variables (VITE_API_BASE_URL)
+    ├── .env.example           Frontend configuration template
+    ├── index.html             HTML5 entry document with viewport meta tags
+    ├── package.json           Frontend dependencies (React, Vite, Framer Motion, Lucide)
+    ├── vite.config.js         Vite configuration with React plugin and proxy settings
+    └── src/
+        ├── main.jsx           React DOM root render file wrapped in BrowserRouter
+        ├── index.css          Global styles and Tailwind CSS directives
+        ├── App.jsx            Unified multi-page single-file component containing all views
+        └── assets/
+            └── Svasth-logo.png Official SVASTH platform branding logo
+
+
+================================================================================
+5. DATABASE SCHEMAS & DATA MODELS
+================================================================================
+
+5.1 USERS COLLECTION (MongoDB):
+- _id: ObjectId (Primary Key)
+- name: String (Required)
+- email: String (Unique Index, Required)
+- password: String (Required)
+- phone: String (Optional)
+- role: String (Default: 'patient')
+- createdAt: ISO Date String
+
+5.2 DOCTORS COLLECTION (MongoDB):
+- _id: ObjectId (Primary Key)
+- id: Number (Numeric Doctor ID, e.g. 1, 2, 3)
+- name: String (e.g. "Dr. Asha Rao")
+- specialty: String (e.g. "Cardiology", "Neurology", "Pediatrics")
+- experience: String (e.g. "12 years")
+- availability: String (e.g. "Today • 4:00 PM")
+- location: String (e.g. "North Wing")
+- consultationType: String (e.g. "In-person + Video")
+
+5.3 APPOINTMENTS COLLECTION (MongoDB):
+- _id: ObjectId (Primary Key)
+- doctorId: Number / String
+- doctorName: String
+- patientName: String
+- patientEmail: String
+- patientPhone: String
+- date: String (YYYY-MM-DD)
+- slot: String (e.g. "09:00 AM", "11:30 AM")
+- reason: String
+- status: String ('confirmed', 'checked-in', 'completed')
+- qrCode: String (Sparse Unique Index, format: "SVASTH-XXXXXX")
+- reminderStatus: String (Default: 'scheduled')
+- createdAt: ISO Date String
+
+5.4 NOTIFICATIONS COLLECTION (MongoDB):
+- _id: ObjectId (Primary Key)
+- email: String
+- message: String
+- createdAt: ISO Date String (Indexed Descending)
+
+
+================================================================================
+6. COMPLETE API REFERENCE
+================================================================================
+
+HEALTH & AUTHENTICATION ENDPOINTS:
+- GET /api/health
+  Returns backend and MongoDB health status.
+- POST /api/register
+  Payload: { name, email, password, phone }
+  Registers account, seeds welcome notification, fires Redis user.registered event.
+- POST /api/login
+  Payload: { email, password }
+  Authenticates credentials and returns user object.
+- POST /api/forgot-password
+  Payload: { email }
+  Generates temporary reset security code (SVASTH-XXXXXX).
+
+DOCTORS & APPOINTMENTS ENDPOINTS:
+- GET /api/doctors
+  Returns doctor directory list (cached in Redis for 1 hour).
+- GET /api/appointments?email=user@example.com
+  Returns user appointments ordered by newest first.
+- POST /api/appointments
+  Payload: { doctorId, patientName, patientEmail, patientPhone, date, slot, reason }
+  Creates appointment, generates QR code, triggers notifications and webhook.
+- POST /api/appointments/:id/checkin
+  Updates status to 'checked-in' and triggers arrival notification.
+- POST /api/appointments/:id/complete
+  Updates status to 'completed' and marks consultation finished.
+
+ADMIN, QUEUE & AI ASSISTANT ENDPOINTS:
+- GET /api/notifications?email=user@example.com
+  Retrieves user notification history.
+- GET /api/queue
+  Returns list of active non-completed appointments.
+- GET /api/stats
+  Returns aggregate statistics: totalAppointments, confirmed, completed.
+- POST /api/assistant
+  Payload: { message }
+  Returns intelligent AI reply regarding booking, QR codes, or check-in rules.
+
+
+================================================================================
+7. FRONTEND USER EXPERIENCE & VIEW ARCHITECTURE
+================================================================================
+1. Home Page (/): Modern hero section with metrics, feature pillars, and quick navigation.
+2. Auth Pages (/login, /register): Sleek sign-in and account creation forms.
+3. Forgot Password (/forgot-password): Password recovery interface.
+4. Patient Dashboard (/dashboard): Dynamic dashboard with doctor search, appointment 
+   booking form, SVG QR Code cards, live notifications, and real-time polling.
+5. Reception Desk (/reception): Fast QR scanner input and live queue management.
+6. Doctor Workspace (/doctor): Today's appointment schedule with single-click complete buttons.
+7. Admin Dashboard (/admin): Metric overview and global operational control table.
+8. SVASTH AI Assistant Modal: Integrated interactive chatbot widget.
+
+
+================================================================================
+8. WORKFLOW AUTOMATION & INTEGRATION ARCHITECTURE
+================================================================================
+Event pipeline flow:
+Express API Action -> pushEvent(type, payload)
+  -> Redis LPUSH 'events' (Persistent log)
+  -> Redis PUBLISH 'events' (Pub/Sub stream)
+  -> HTTP POST to n8n Webhook URL -> Automation Engine -> WhatsApp / Email Notification
+
+
+================================================================================
+9. INSTALLATION, CONFIGURATION & LOCAL EXECUTION GUIDE
+================================================================================
+Prerequisites: Node.js (v18+), MongoDB running on 127.0.0.1:27017.
+
+1. Install Dependencies:
+   npm install
+
+2. Configure Environment (.env files created in root, backend/, frontend/):
+   PORT=5000
+   MONGO_URI=mongodb://127.0.0.1:27017
+   REDIS_URL=redis://127.0.0.1:6379
+
+3. Run Application:
+   npm run dev
+
+Access points:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:5000
+
+
+================================================================================
+10. SUMMARY & CONCLUSION
+================================================================================
+SVASTH is a feature-complete, modern healthcare operations platform that connects 
+patients, receptionists, doctors, and administrators into one intelligent system. 
+It automates scheduling, reminders, check-ins, and multi-channel notifications.
+================================================================================
